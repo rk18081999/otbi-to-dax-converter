@@ -7,6 +7,7 @@ import os
 # Get Gemini API key from environment variable or set directly
 # Get your API key at: https://makersuite.google.com/app/apikey
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
+GEMINI_MODEL = "gemini-2.5-flash"  # or gemini-2.5-pro for higher quality reasoning
 
 # Uncomment and set your API key directly (not recommended for production)
 # GEMINI_API_KEY = "your-api-key-here"

@@ -1,6 +1,6 @@
 import os
 import json
-import google.generativeai as genai
+import requests
 from typing import Dict, Any
 from llm_config import GEMINI_API_KEY, GEMINI_MODEL, TEMPERATURE, MAX_TOKENS
 
@@ -8,6 +8,7 @@ class LLMReasoner:
     """
     LLM-powered reasoning engine for OTBI to DAX conversion.
     Uses multi-stage prompting for semantic analysis, join reasoning, and DAX generation.
+    Uses direct HTTP requests to bypass issues with client libraries.
     """
     
     def __init__(self, api_key: str = None):
@@ -19,8 +20,8 @@ class LLMReasoner:
                 "GEMINI_API_KEY not set. Please set it in llm_config.py or as environment variable."
             )
         
-        genai.configure(api_key=self.api_key)
-        self.model = genai.GenerativeModel(GEMINI_MODEL)
+        # Base URL for Gemini API
+        self.api_url = f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL}:generateContent?key={self.api_key}"
         
         # Load demo examples
         self.demo_sql = self._load_file('Demo_SQL.sql')
@@ -34,25 +35,63 @@ class LLMReasoner:
     def _load_file(self, filename: str) -> str:
         """Load file content"""
         try:
-            with open(filename, 'r') as f:
+            # Use absolute path if available, otherwise relative to project root
+            base_path = os.path.dirname(os.path.abspath(__file__))
+            full_path = os.path.join(base_path, filename)
+            
+            if not os.path.exists(full_path):
+                full_path = filename # fall back to relative
+                
+            with open(full_path, 'r') as f:
                 return f.read()
         except FileNotFoundError:
             print(f"Warning: {filename} not found")
             return ""
+        except Exception as e:
+            print(f"Error loading {filename}: {e}")
+            return ""
     
     def _call_llm(self, prompt: str) -> str:
-        """Call LLM with prompt and return response"""
+        """Call LLM with prompt using direct HTTP requests and return response"""
+        headers = {'Content-Type': 'application/json'}
+        data = {
+            "contents": [{
+                "parts":[{"text": prompt}]
+            }],
+            "generationConfig": {
+                "temperature": TEMPERATURE,
+                "maxOutputTokens": MAX_TOKENS,
+            }
+        }
+        
         try:
-            response = self.model.generate_content(
-                prompt,
-                generation_config=genai.types.GenerationConfig(
-                    temperature=TEMPERATURE,
-                    max_output_tokens=MAX_TOKENS,
-                )
-            )
-            return response.text
+            # Setting a 60-second timeout for the API call
+            response = requests.post(self.api_url, headers=headers, json=data, timeout=60)
+            
+            if response.status_code != 200:
+                error_detail = response.text
+                try:
+                    error_json = response.json()
+                    error_detail = error_json.get('error', {}).get('message', response.text)
+                except:
+                    pass
+                raise Exception(f"Gemini API returned status {response.status_code}: {error_detail}")
+                
+            response_json = response.json()
+            
+            # Extract text from the first candidate
+            try:
+                text = response_json['candidates'][0]['content']['parts'][0]['text']
+                return text
+            except (KeyError, IndexError) as e:
+                raise Exception(f"Failed to parse Gemini response: {str(e)}\nRaw response: {json.dumps(response_json)}")
+                
+        except requests.exceptions.Timeout:
+            raise Exception("Gemini API call timed out after 60 seconds")
+        except requests.exceptions.RequestException as e:
+            raise Exception(f"Gemini API request failed: {str(e)}")
         except Exception as e:
-            raise Exception(f"LLM API call failed: {str(e)}")
+            raise Exception(f"Unexpected error during LLM call: {str(e)}")
     
     def analyze_semantics(self, sql_text: str) -> Dict[str, Any]:
         """
