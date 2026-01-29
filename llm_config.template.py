@@ -10,7 +10,7 @@ GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
 GEMINI_MODEL = "gemini-2.5-flash"  # or gemini-2.5-pro for higher quality reasoning
 
 # Uncomment and set your API key directly (not recommended for production)
-GEMINI_API_KEY = "AIzaSyCu8zTV0MJTX06DwaUDy8Tz8WO2Fk8lRxU"
+GEMINI_API_KEY = "AIzaSyD8NWem9FotgTnG_WKTqeHYgR-yFsywCrc"
 
 if not GEMINI_API_KEY:
     print("⚠️  Warning: GEMINI_API_KEY not configured")
