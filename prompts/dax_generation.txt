@@ -37,13 +37,13 @@ You are an expert Power BI DAX developer. Generate a DAX query based on the sema
 {input_sql}
 ```
 
-## Generate DAX
-
 Create a DAX query that:
 1. Follows the SELECTCOLUMNS + LOOKUPVALUE pattern from the example
 2. Uses the driving table identified in semantic analysis
 3. Implements joins as LOOKUPVALUE based on join analysis
-4. Applies filters correctly
-5. Includes ORDER BY for all columns
+4. Applies ALL filters from the SQL correctly
+5. Includes ALL columns requested in the original SQL SELECT clause
+6. Includes ORDER BY for all columns
+7. **DO NOT TRUNCATE**: Ensure the entire query is generated from EVALUATE to ORDER BY.
 
 Output ONLY the DAX query, no explanations.

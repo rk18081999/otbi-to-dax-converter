@@ -106,12 +106,16 @@ class LLMReasoner:
         response = self._call_llm(prompt)
         
         try:
-            # Extract JSON from response (may have markdown code blocks)
-            json_str = response
-            if '```json' in response:
-                json_str = response.split('```json')[1].split('```')[0]
-            elif '```' in response:
-                json_str = response.split('```')[1].split('```')[0]
+            # Extract JSON from response (handle various markdown formats or plain JSON)
+            json_str = response.strip()
+            if '```json' in json_str:
+                json_str = json_str.split('```json')[1]
+                if '```' in json_str:
+                    json_str = json_str.split('```')[0]
+            elif '```' in json_str:
+                json_str = json_str.split('```', 1)[1]
+                if '```' in json_str:
+                    json_str = json_str.split('```')[0]
             
             return json.loads(json_str.strip())
         except json.JSONDecodeError as e:
@@ -158,11 +162,15 @@ class LLMReasoner:
         response = self._call_llm(prompt)
         
         # Extract DAX from response (remove markdown if present)
-        dax = response
-        if '```dax' in response:
-            dax = response.split('```dax')[1].split('```')[0]
-        elif '```' in response:
-            dax = response.split('```')[1].split('```')[0]
+        dax = response.strip()
+        if '```dax' in dax:
+            dax = dax.split('```dax')[1]
+            if '```' in dax:
+                dax = dax.split('```')[0]
+        elif '```' in dax:
+            dax = dax.split('```', 1)[1]
+            if '```' in dax:
+                dax = dax.split('```')[0]
         
         return dax.strip()
     
